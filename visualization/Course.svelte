@@ -3,15 +3,15 @@
 
   export let course;
   export let colorMap;
-  export let maxTerms;
+  export let numTerms;
 
   $: title = `${course.subject} ${course.number}: ${course.name}`;
-  $: terms = course.allTerms.slice(0, maxTerms).map(term => term.split(' '));
+  $: terms = course.allTerms.slice(0, numTerms).map(term => term.split(' '));
 </script>
 
 <div class="course">
   <h4 class="title" title={title}>{title}</h4>
-  <div class="terms" style="grid-template-columns: {'1fr '.repeat(maxTerms)};">
+  <div class="terms" style="grid-template-columns: {'1fr '.repeat(numTerms)};">
     {#each terms as [season, year]}
       <div
         class="term"
@@ -32,6 +32,7 @@
 
 .title {
   width: 300px;
+  min-width: 300px;
   padding: 5px;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -43,6 +44,15 @@
   flex: 1;
   display: grid;
   direction: rtl;
+  width: 100%;
+  overflow: auto;
+
+  /* hide scrollbar */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.terms::-webkit-scrollbar {
+  display: none;
 }
 
 .term {

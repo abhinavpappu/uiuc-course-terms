@@ -10,8 +10,9 @@
     winter: '#7785AC',
   };
 
-	// const maxTerms = Math.max(...courseData.map(({ allTerms }) => allTerms.length));
-	const maxTerms = 8;
+	const maxTerms = Math.max(...courseData.map(({ allTerms }) => allTerms.length));
+	let numTerms = 8;
+	$: sanitizedNumTerms = Math.min(Math.max(0, Number(numTerms) || 0), maxTerms);
 </script>
 
 <main>
@@ -26,10 +27,10 @@
 		{/each}
 	</div>
 
+	<div class="num-terms">Displaying <input type="number" bind:value={numTerms} step=1 min=0 max={maxTerms} /> most recent offering{numTerms === 1 ? '' : 's'} of each course</div>
+
 	{#each courseData as course (course.subject + course.number)}	
-		<div>
-			<Course {course} {colorMap} {maxTerms} />
-		</div>
+		<Course {course} {colorMap} numTerms={sanitizedNumTerms} />
 	{/each}
 </main>
 
@@ -41,7 +42,12 @@ h1 {
 .legend {
 	display: flex;
 	justify-content: center;
-	margin-bottom: 15px;
+	margin-bottom: 10px;
+}
+
+.num-terms {
+	text-align: center;
+	margin-bottom: 20px;
 }
 
 .key {
