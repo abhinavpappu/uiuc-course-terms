@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "fetchdata": "ts-node getcoursedata.ts",
     "build": "node buildscript.js",
     "build:watch": "node buildscript.js --watch",
     "serve": "servor dist --browse --reload",

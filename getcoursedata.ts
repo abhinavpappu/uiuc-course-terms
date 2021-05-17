@@ -1,6 +1,7 @@
 import cheerio from 'cheerio';
 import fetch from 'node-fetch';
 import fs from 'fs';
+import path from 'path';
 
 export type Course = {
   subject: string;
@@ -10,19 +11,32 @@ export type Course = {
   allTerms: string[];
 };
 
+export type CourseData = {
+  lastUpdated: string; // formatted like "Fall 2021"
+  courses: Course[];
+}
+
 main();
 
 async function main() {
-  const courses = await getCourses('CS');
-  console.log(`Num courses: ${courses.length}`);
-  await fs.promises.writeFile('./coursedata.json', JSON.stringify(courses, null, 2));
+  const subject = 'CS'; // temporarily hardcoded
+  try {
+    const courseData = await getCourseData(subject);
+    console.log(`Last Updated: ${courseData.lastUpdated}`);
+    console.log(`Num courses: ${courseData.courses.length}`);
+    await fs.promises.writeFile(path.resolve(__dirname, './data/coursedata.json'), JSON.stringify(courseData, null, 2));
+  } catch (e) {
+    console.error(`Failed to fetch data for subject "${subject}"`);
+    console.error(e);
+  }
 }
 
-async function getCourses(subject: string): Promise<Course[]> {
-  // const URL = `http://catalog.illinois.edu/courses-of-instruction/${subject.toLowerCase()}/`;
+async function getCourseData(subject: string): Promise<CourseData> {
   const URL = `https://courses.illinois.edu/cisapp/explorer/catalog/2021/fall/${subject}.xml`;
   const xml = await (await fetch(URL)).text();
   const $ = cheerio.load(xml);
+
+  const currentTerm = $('parents > term').text();
 
   const coursePromises = $('course').get().map(async element => ({
     subject,
@@ -31,7 +45,10 @@ async function getCourses(subject: string): Promise<Course[]> {
     ...await getTermData($(element).attr('href'))
   }));
 
-  return Promise.all(coursePromises);
+  return {
+    lastUpdated: currentTerm,
+    courses: await Promise.all(coursePromises),
+  };
 }
 
 type TermData = Pick<Course, "counts" | "allTerms">;
@@ -65,7 +82,7 @@ async function getTermData(courseLink?: string): Promise<TermData> {
     } else if (term.includes('Winter')) {
       termData.counts[3] += 1;
     } else {
-      console.log(`Unknown term: ${term}`);
+      console.log(`Unknown term: "${term}", skipping...`);
     }
   })
 
