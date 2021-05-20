@@ -1,8 +1,7 @@
 <script>
-	import courseData from '../data/coursedata.json';
+	import Select from 'svelte-select';
+	import subjects from '../data/subjects.json';
 	import Course from './Course.svelte';
-
-	const { lastUpdated, courses } = courseData;
 
 	// TODO: improve colors
 	const colorMap = {
@@ -12,15 +11,28 @@
     winter: '#7785AC',
   };
 
-	const maxTerms = Math.max(...courses.map(({ allTerms }) => allTerms.length));
+	const subjectOptions = subjects.map(subject => ({ value: subject, label: subject }));
+	let selectedSubject = subjectOptions[0];
+	
+	// key: subject name, value: course data object
+	const coursesCache = {};
+	async function getCourseData(subject) {
+		if (!coursesCache[subject]) {
+			coursesCache[subject] = await fetch(`/data/${selectedSubject.value}.json`).then(res => res.json())
+		}
+		return coursesCache[subject];
+	}
+
+	$: courseDataPromise = getCourseData(selectedSubject.value);
+
 	let numTerms = 8;
+	let maxTerms = 100; // arbitrary value that will get reassigned below
+	$: courseDataPromise.then(({ courses }) => maxTerms = Math.max(...courses.map(({ allTerms }) => allTerms.length)));
 	$: sanitizedNumTerms = Math.min(Math.max(0, Number(numTerms) || 0), maxTerms);
 </script>
 
 <main>
 	<h1>UIUC Course Terms</h1>
-
-	<p class="last-updated">Last Updated: {lastUpdated}</p>
 
 	<div class="legend">
 		{#each Object.entries(colorMap) as [season, color] (season)}
@@ -32,20 +44,35 @@
 	</div>
 
 	<div class="num-terms">
-		Displaying
+		<span>Displaying</span>
 		<input type="number" bind:value={numTerms} step=1 min=0 max={maxTerms} />
-		most recent offering{numTerms === 1 ? '' : 's'} of each course
+		<span>most recent offering{numTerms === 1 ? '' : 's'} of each</span>
+		<Select
+			items={subjectOptions}
+			selectedValue={selectedSubject}
+			on:select={e => selectedSubject = e.detail}
+			placeholder="Subject"
+			isClearable={false}
+			containerStyles="display: inline-block; --height: 30px; min-width: 70px"
+			inputStyles="cursor: pointer"
+		/>
+		<span>course</span>
 	</div>
 
-	{#each courses as course (course.subject + course.number)}	
-		<Course {course} {colorMap} numTerms={sanitizedNumTerms} />
-	{/each}
+	{#await courseDataPromise then { courses, lastUpdated } }
+		<p class="last-updated">Last Updated: {lastUpdated}</p>
+
+		{#each courses as course (course.subject + course.number)}	
+			<Course {course} {colorMap} numTerms={sanitizedNumTerms} />
+		{/each}
+	{/await}
 </main>
 
 <style>
 h1 {
 	text-align: center;
 	margin-top: 30px;
+	margin-bottom: 15px;
 }
 
 .last-updated {
@@ -64,12 +91,22 @@ h1 {
 .num-terms {
 	text-align: center;
 	margin-bottom: 20px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	gap: 5px;
 }
 
 .num-terms input {
 	font-family: inherit;
 	font-size: 1em;
 	text-align: center;
+	border: 1px solid #d8dbdf;
+	border-radius: 3px;
+}
+
+.num-terms span {
+	margin: 0 5px;
 }
 
 .key {

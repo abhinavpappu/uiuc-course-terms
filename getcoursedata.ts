@@ -34,6 +34,8 @@ async function main() {
     const totalStartTime = Date.now();
     let totalNumCourses = 0;
     const subjects = await getSubjects();
+    await fs.promises.writeFile(path.resolve(__dirname, `./data/subjects.json`), JSON.stringify(subjects.map(s => s.name)));
+    console.log(`Retrieved ${subjects.length} subjects, written to data/subjects.json"`);
 
     // we could process all subjects simultaneously, but that may be too many requests at once,
     // so we do them one at a time instead

@@ -1,6 +1,6 @@
 // https://github.com/EMH333/esbuild-svelte
 // https://github.com/EMH333/esbuild-svelte/blob/main/example/buildscript.js
-const fs = require("fs");
+const fs = require("fs-extra");
 const esbuild = require('esbuild');
 const sveltePreprocess = require('svelte-preprocess');
 const esbuildSvelte = require('esbuild-svelte');
@@ -16,9 +16,10 @@ esbuild.build({
   plugins: [
     esbuildSvelte({ preprocess: sveltePreprocess() })
   ],
-}).then(() => {
-  fs.copyFile(`${srcDirectory}/index.html`, `${outDirectory}/index.html`, (err) => { if (err) throw err; });
-}).catch((err) => {
+})
+.then(() => fs.copy(`${srcDirectory}/index.html`, `${outDirectory}/index.html`))
+.then(() => fs.copy('./data', `${outDirectory}/data`))
+.catch((err) => {
   console.error(err);
   process.exit(1);
 });
