@@ -2,16 +2,16 @@
 
 Displays most recent offerings of each course at UIUC and which terms they were offered.
 
+### Usage
+Go [here](https://uiuc-course-terms.netlify.app/), select the subject you want, and look for long strips of orange/blue indicating fall/spring-only courses.
+Adjust the number of terms visible if desired.
+
+### Why
 So I wanted a way to see which courses at UIUC were fall-only and spring-only, and got all the necessary data from the course explorer api
 (from urls like [this](https://courses.illinois.edu/cisapp/explorer/catalog/2021/fall/CS/100.xml)) and was going to just generate
 a list of fall-only/spring-only courses. But turns out there are a lot of exceptions (where a fall course was offered during spring but only once)
 and courses that switched from fall-only to spring-only or vice versa, plus other weird stuff that I didn't feel like dealing with.
 So I decided to just display all the data instead, allowing the viewer to determine for themselves.
-
-### Usage
-Go [here](https://uiuc-course-terms.netlify.app/), select the subject you want, and look for long strips of orange/blue indicating fall/spring-only courses.
-Adjust the number of terms visible if desired.
-
 
 ## Development
 I wanted to try out using [Svelte](https://svelte.dev/) and [esbuild](https://esbuild.github.io/) for the first time, so I'm probably not following any
