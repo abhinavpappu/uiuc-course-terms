@@ -1,0 +1,54 @@
+# This is a basic workflow that is manually triggered
+
+name: Fetch Data Every Day (if necessary)
+
+# Controls when the action will run. Workflow runs when manually triggered using the UI
+# or API.
+on:
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    - cron:  '37 5 * * *' # the 5:37 is arbitrary and has no significance
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "greet"
+  greet:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2.3.4
+
+    - name: Cache node_modules
+      uses: actions/cache@v2.1.5
+      with:
+        # A list of files, directories, and wildcard patterns to cache and restore
+        path: node_modules
+        # An explicit key for restoring and saving the cache
+        key: node-modules-${{ hashFiles('package-lock.json') }}
+        
+    - name: Setup Node.js environment
+      uses: actions/setup-node@v2.1.5
+      with:
+        # Version Spec of the version to use.  Examples: 12.x, 10.15.1, >=10.15.0
+        node-version: ">=10.15.0" # TODO: fix
+        
+    - name: Install Dependencies
+      if: steps.node-cache.outputs.cache-hit != 'true'
+      run: npm ci
+      
+    - name: Fetch Data
+      run: npx ts-node getcoursedata.ts -y
+      
+    - name: Commit & Push Changes
+      uses: EndBug/add-and-commit@v7.2.1
+      with:
+        add: 'data'
+        default_author: github_actions
+        message: 'Update data'
+        pull_strategy: NO-PULL
+
+    
+    
