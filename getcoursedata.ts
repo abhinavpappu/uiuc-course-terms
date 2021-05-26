@@ -27,6 +27,14 @@ export type Subject = {
   link: string; // URL formatted like `https://courses.illinois.edu/cisapp/explorer/catalog/2021/fall/${subjectName}.xml`
 };
 
+// undefined also indicates `false`
+export type Flags = {
+  yes?: boolean; // skips the first confirmation prompt
+  force?: boolean; // forces program to run even if data/lastupdated indicates that fetching new data is redundant
+}
+
+const flags: Flags = {};
+
 const getSubjectFile = (subject: Subject) => path.resolve(__dirname, `./data/${subject.name}.json`);
 
 main().catch(err => {
@@ -35,7 +43,10 @@ main().catch(err => {
 });
 
 async function main() {
-  const shouldContinue = await confirm("Warning: This will send thousands of http requests (one for every course at UIUC, plus a couple more). Are you sure you want to continue (y/n)?");
+  console.log(process.argv);
+  processFlags(process.argv);
+
+  const shouldContinue = flags.yes || await confirm("Warning: This will send thousands of http requests (one for every course at UIUC, plus a couple more). Are you sure you want to continue (y/n)?");
   if (shouldContinue) {
     const totalStartTime = Date.now();
     let totalNumCourses = 0;
@@ -69,6 +80,15 @@ async function main() {
   }
 }
 
+function processFlags(args: string[]) {
+  if (args.includes('-y')) {
+    flags.yes = true;
+  }
+  if (args.includes('-f')) {
+    flags.force = true;
+  }
+}
+
 async function loadURL(url: string): Promise<cheerio.Root> {
   const xml = await (await fetch(url)).text();
   return cheerio.load(xml);
@@ -91,7 +111,7 @@ async function getSubjects(): Promise<Subject[]> {
   console.log(`Using the following term URL: ${termUrl}`);
 
   // TODO: we assume that if they're not equal, then `termName` specifies a more recent term than `lastUpdated`
-  if (termName === lastUpdated) {
+  if (termName === lastUpdated && !flags.force) {
     console.log(`No new terms detected (latest term is still "${termName}"). Not making any requests.`);
     return [];
   }
