@@ -5,6 +5,10 @@ import path from 'path';
 import { confirm } from 'promptly';
 import humanizeDuration from 'humanize-duration';
 
+const CATALOG_URL = 'https://courses.illinois.edu/cisapp/explorer/catalog.xml';
+const lastUpdatedFile = path.resolve(__dirname, './data/lastupdated');
+const subjectsFile = path.resolve(__dirname, `./data/subjects.json`);
+
 export type Course = {
   subject: string;
   number: number;
@@ -23,6 +27,8 @@ export type Subject = {
   link: string; // URL formatted like `https://courses.illinois.edu/cisapp/explorer/catalog/2021/fall/${subjectName}.xml`
 };
 
+const getSubjectFile = (subject: Subject) => path.resolve(__dirname, `./data/${subject.name}.json`);
+
 main().catch(err => {
   console.error('Failed to fetch data.');
   throw err;
@@ -34,8 +40,11 @@ async function main() {
     const totalStartTime = Date.now();
     let totalNumCourses = 0;
     const subjects = await getSubjects();
-    await fs.promises.writeFile(path.resolve(__dirname, `./data/subjects.json`), JSON.stringify(subjects.map(s => s.name)));
-    console.log(`Retrieved ${subjects.length} subjects, written to data/subjects.json"`);
+    if (subjects.length >= 1) { // if `subjects` is [], then we don't want to do anything
+      // TODO: maybe merge the subjects instead of overwriting? (in case any subjects were removed)
+      await fs.promises.writeFile(subjectsFile, JSON.stringify(subjects.map(s => s.name)));
+      console.log(`Retrieved ${subjects.length} subjects, written to data/subjects.json"`);
+    }
 
     // we could process all subjects simultaneously, but that may be too many requests at once,
     // so we do them one at a time instead
@@ -45,7 +54,7 @@ async function main() {
       const startTime = Date.now();
       try {
         const courseData = await getCourseData(subject);
-        await fs.promises.writeFile(path.resolve(__dirname, `./data/${subject.name}.json`), JSON.stringify(courseData));
+        await fs.promises.writeFile(getSubjectFile(subject), JSON.stringify(courseData));
         totalNumCourses += courseData.courses.length;
         const timeTaken = Date.now() - startTime;
         console.log(`[${i+1}/${subjects.length}] ${subject.name} completed in ${humanizeDuration(timeTaken)}, ${courseData.courses.length} courses processed`);
@@ -67,13 +76,27 @@ async function loadURL(url: string): Promise<cheerio.Root> {
 
 // returns a list of urls to each subject page 
 async function getSubjects(): Promise<Subject[]> {
-  let $ = await loadURL('https://courses.illinois.edu/cisapp/explorer/catalog.xml');
+  const lastUpdated = await fs.promises.readFile(lastUpdatedFile)
+    .then(buf => buf.toString())
+    .catch(() => '');
+
+  let $ = await loadURL(CATALOG_URL);
   const yearUrl = $('calendarYear').first().attr('href'); // TODO: currently assuming first `calendarYear` is latest
   console.log(`Using the following year URL: ${yearUrl}`);
 
   $ = await loadURL(yearUrl as string);
-  const termUrl = $('term').last().attr('href'); // TODO: currently assuming last `term` is latest
+  const latestTerm = $('term').last(); // TODO: currently assuming last `term` is latest
+  const termUrl = latestTerm.attr('href');
+  const termName = latestTerm.text();
   console.log(`Using the following term URL: ${termUrl}`);
+
+  // TODO: we assume that if they're not equal, then `termName` specifies a more recent term than `lastUpdated`
+  if (termName === lastUpdated) {
+    console.log(`No new terms detected (latest term is still "${termName}"). Not making any requests.`);
+    return [];
+  }
+  fs.promises.writeFile(lastUpdatedFile, termName);
+  console.log(`Wrote latest term "${termName}" to data/lastupdated`);
 
   $ = await loadURL(termUrl as string);
 
