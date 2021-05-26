@@ -6,7 +6,7 @@ import { confirm } from 'promptly';
 import humanizeDuration from 'humanize-duration';
 
 const CATALOG_URL = 'https://courses.illinois.edu/cisapp/explorer/catalog.xml';
-const lastUpdatedFile = path.resolve(__dirname, './data/lastupdated');
+const lastUpdatedFile = path.resolve(__dirname, './data/lastupdated.txt');
 const subjectsFile = path.resolve(__dirname, `./data/subjects.json`);
 
 export type Course = {
@@ -43,7 +43,6 @@ main().catch(err => {
 });
 
 async function main() {
-  console.log(process.argv);
   processFlags(process.argv);
 
   const shouldContinue = flags.yes || await confirm("Warning: This will send thousands of http requests (one for every course at UIUC, plus a couple more). Are you sure you want to continue (y/n)?");

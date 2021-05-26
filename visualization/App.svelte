@@ -13,6 +13,8 @@
 
 	const subjectOptions = subjects.map(subject => ({ value: subject, label: subject }));
 	let selectedSubject = subjectOptions[0];
+
+	const lastUpdatedPromise = fetch('/data/lastupdated.txt').then(res => res.text());
 	
 	// key: subject name, value: course data object
 	const coursesCache = {};
@@ -33,6 +35,10 @@
 
 <main>
 	<h1>UIUC Course Terms</h1>
+
+	{#await lastUpdatedPromise then lastUpdated}
+		<p class="last-updated">Last Updated: {lastUpdated}</p>
+	{/await}
 
 	<div class="legend">
 		{#each Object.entries(colorMap) as [season, color] (season)}
@@ -59,9 +65,7 @@
 		<span>course</span>
 	</div>
 
-	{#await courseDataPromise then { courses, lastUpdated } }
-		<p class="last-updated">Last Updated: {lastUpdated}</p>
-
+	{#await courseDataPromise then { courses } }
 		{#each courses as course (course.subject + course.number)}	
 			<Course {course} {colorMap} numTerms={sanitizedNumTerms} />
 		{/each}
