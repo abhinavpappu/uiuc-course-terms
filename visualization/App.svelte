@@ -36,7 +36,7 @@
 	<h1>UIUC Course Terms</h1>
 
 	{#await lastUpdatedPromise then lastUpdated}
-		<p class="last-updated">Last Updated: {new Date(lastUpdated).toLocaleDateString()}</p>
+		<p class="last-updated">Last Updated: {new Date(Number(lastUpdated)).toLocaleDateString()}</p>
 	{/await}
 
 	<div class="legend">
