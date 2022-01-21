@@ -18,7 +18,6 @@ export type Course = {
 };
 
 export type CourseData = {
-  lastUpdated: string; // formatted like "Fall 2021"
   courses: Course[];
 };
 
@@ -30,7 +29,6 @@ export type Subject = {
 // undefined also indicates `false`
 export type Flags = {
   yes?: boolean; // skips the first confirmation prompt
-  force?: boolean; // forces program to run even if data/lastupdated indicates that fetching new data is redundant
 }
 
 const flags: Flags = {};
@@ -58,7 +56,7 @@ async function main() {
 
     // we could process all subjects simultaneously, but that may be too many requests at once,
     // so we do them one at a time instead
-    // (note that `getCourseData` creates a bunch of simultaneous requests for each course in a subject)
+    // (note that `getCourseData` still creates a bunch of simultaneous requests for each course in a subject)
     for (let i = 0; i < subjects.length; i++) {
       const subject = subjects[i];
       const startTime = Date.now();
@@ -83,9 +81,6 @@ function processFlags(args: string[]) {
   if (args.includes('-y')) {
     flags.yes = true;
   }
-  if (args.includes('-f')) {
-    flags.force = true;
-  }
 }
 
 async function loadURL(url: string): Promise<cheerio.Root> {
@@ -95,10 +90,6 @@ async function loadURL(url: string): Promise<cheerio.Root> {
 
 // returns a list of urls to each subject page 
 async function getSubjects(): Promise<Subject[]> {
-  const lastUpdated = await fs.promises.readFile(lastUpdatedFile)
-    .then(buf => buf.toString())
-    .catch(() => '');
-
   let $ = await loadURL(CATALOG_URL);
   const yearUrl = $('calendarYear').first().attr('href'); // TODO: currently assuming first `calendarYear` is latest
   console.log(`Using the following year URL: ${yearUrl}`);
@@ -106,16 +97,11 @@ async function getSubjects(): Promise<Subject[]> {
   $ = await loadURL(yearUrl as string);
   const latestTerm = $('term').last(); // TODO: currently assuming last `term` is latest
   const termUrl = latestTerm.attr('href');
-  const termName = latestTerm.text();
   console.log(`Using the following term URL: ${termUrl}`);
 
-  // TODO: we assume that if they're not equal, then `termName` specifies a more recent term than `lastUpdated`
-  if (termName === lastUpdated && !flags.force) {
-    console.log(`No new terms detected (latest term is still "${termName}"). Not making any requests.`);
-    return [];
-  }
-  fs.promises.writeFile(lastUpdatedFile, termName);
-  console.log(`Wrote latest term "${termName}" to data/lastupdated`);
+  const now = Date.now();
+  fs.promises.writeFile(lastUpdatedFile, now.toString());
+  console.log(`Wrote current epoch time "${now}" to data/lastupdated`);
 
   $ = await loadURL(termUrl as string);
 
@@ -129,8 +115,6 @@ async function getSubjects(): Promise<Subject[]> {
 async function getCourseData(subject: Subject): Promise<CourseData> {
   const $ = await loadURL(subject.link);
 
-  const currentTerm = $('parents > term').text();
-
   const coursePromises = $('course').get().map(async element => ({
     subject: subject.name,
     number: Number($(element).attr('id')) || 0,
@@ -139,7 +123,6 @@ async function getCourseData(subject: Subject): Promise<CourseData> {
   }));
 
   return {
-    lastUpdated: currentTerm,
     courses: await Promise.all(coursePromises),
   };
 }

@@ -41,9 +41,8 @@ will run `ts-node getcoursedata.ts`, which will do the following (the urls below
 | Flag | Description |
 | --- | --- |
 | `-y` | Skips the initial confirmation prompt |
-| `-f` | Forces program to run even if `data/lastupdated` indicates that data is already up to date |
 
-Example: `ts-node getcoursedata.ts -f -y` (you may need to prefix it with `npx`, i.e. `npx ts-node ...` if `ts-node` is not globally installed)
+Example: `ts-node getcoursedata.ts -y` (you may need to prefix it with `npx`, i.e. `npx ts-node ...` if `ts-node` is not globally installed)
 
 *Note: Command line arguments can only be used when directly running `ts-node getcoursedata.ts` (and not `npm run fetchdata`)*
 

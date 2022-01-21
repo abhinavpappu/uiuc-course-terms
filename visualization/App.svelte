@@ -3,7 +3,6 @@
 	import subjects from '../data/subjects.json';
 	import Course from './Course.svelte';
 
-	// TODO: improve colors
 	const colorMap = {
     fall: '#E84A27',
     spring: '#003366',
@@ -37,7 +36,7 @@
 	<h1>UIUC Course Terms</h1>
 
 	{#await lastUpdatedPromise then lastUpdated}
-		<p class="last-updated">Last Updated: {lastUpdated}</p>
+		<p class="last-updated">Last Updated: {new Date(lastUpdated).toLocaleDateString()}</p>
 	{/await}
 
 	<div class="legend">
