@@ -19,7 +19,7 @@
 	const coursesCache = {};
 	async function getCourseData(subject) {
 		if (!coursesCache[subject]) {
-			coursesCache[subject] = await fetch(`/data/${selectedSubject.value}.json`).then(res => res.json())
+			coursesCache[subject] = await fetch(`/data/subjects/${subject}.json`).then(res => res.json())
 		}
 		return coursesCache[subject];
 	}

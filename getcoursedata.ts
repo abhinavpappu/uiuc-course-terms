@@ -34,7 +34,7 @@ export type Flags = {
 
 const flags: Flags = {};
 
-const getSubjectFile = (subject: Subject) => path.resolve(__dirname, `./data/${subject.name}.json`);
+const getSubjectFile = (subject: Subject) => path.resolve(__dirname, `./data/subjects/${subject.name}.json`);
 
 main().catch(err => {
   console.error('Failed to fetch data.');
@@ -78,7 +78,7 @@ async function main() {
 
     const now = Date.now();
     fs.promises.writeFile(lastUpdatedFile, now.toString());
-    console.log(`Wrote current epoch time "${now}" to data/lastupdated`);
+    console.log(`Wrote current epoch time "${now}" to data/lastupdated.txt`);
   }
 }
 
