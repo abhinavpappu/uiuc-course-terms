@@ -1,3 +1,4 @@
+import type { Element } from 'domhandler';
 import cheerio, { load } from 'cheerio';
 import fetch from 'node-fetch';
 import fs from 'fs';
@@ -74,6 +75,10 @@ async function main() {
 
     const totalTimeTaken = Date.now() - totalStartTime;
     console.log(`Done! ${totalNumCourses} total courses processed in ${humanizeDuration(totalTimeTaken)}`);
+
+    const now = Date.now();
+    fs.promises.writeFile(lastUpdatedFile, now.toString());
+    console.log(`Wrote current epoch time "${now}" to data/lastupdated`);
   }
 }
 
@@ -91,25 +96,43 @@ async function loadURL(url: string): Promise<cheerio.Root> {
 // returns a list of urls to each subject page 
 async function getSubjects(): Promise<Subject[]> {
   let $ = await loadURL(CATALOG_URL);
-  const yearUrl = $('calendarYear').first().attr('href'); // TODO: currently assuming first `calendarYear` is latest
-  console.log(`Using the following year URL: ${yearUrl}`);
+  // TODO: currently assuming first `calendarYear` is latest
+  const latestYearUrl = await getFirstWorkingUrl($('calendarYear').toArray().map(year => year.attribs.href));
+  if (!latestYearUrl) {
+    console.log('Error fetching latest year url');
+    return [];
+  }
+  console.log(`Using the following year URL: ${latestYearUrl}`);
 
-  $ = await loadURL(yearUrl as string);
-  const latestTerm = $('term').last(); // TODO: currently assuming last `term` is latest
-  const termUrl = latestTerm.attr('href');
-  console.log(`Using the following term URL: ${termUrl}`);
+  $ = await loadURL(latestYearUrl as string);
+  // TODO: currently assuming last `term` is latest (so we reverse below list)
+  const latestTermUrl = await getFirstWorkingUrl($('term').toArray().reverse().map(term => term.attribs.href));
+  if (!latestTermUrl) {
+    console.log('Error fetching latest term URL');
+    return [];
+  }
+  console.log(`Using the following term URL: ${latestTermUrl}`);
 
-  const now = Date.now();
-  fs.promises.writeFile(lastUpdatedFile, now.toString());
-  console.log(`Wrote current epoch time "${now}" to data/lastupdated`);
-
-  $ = await loadURL(termUrl as string);
+  $ = await loadURL(latestTermUrl as string);
 
   return $('subject').get().map(element => ({
     // we assume the following attributes exist
     name: $(element).attr('id') as string,
     link: $(element).attr('href') as string,
   }));
+}
+
+async function getFirstWorkingUrl(urls: string[]): Promise<string | null> {
+  // Sometimes the listed urls aren't actually valid, so we iterate through the list of urls and check if the url actually exists
+  for (const url of urls) {
+    try {
+      const res = await fetch(url);
+      if (res.status === 200) {
+        return url;
+      }
+    } catch(err) {}
+  }
+  return null;
 }
 
 async function getCourseData(subject: Subject): Promise<CourseData> {
